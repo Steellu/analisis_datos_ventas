@@ -371,13 +371,13 @@ class AnalizadorVentas:
         
         # Calcular métricas unitarias
         productos['Peso Unitario (kg)'] = (productos['PESO TOTAL'] / productos['CANT']).fillna(0).round(3)
-        productos['S/ por Unidad'] = (productos['MONTO_FACTURADO'] / productos['CANT']).fillna(0).round(2)
-        productos['S/ por Kg'] = (productos['MONTO_FACTURADO'] / productos['PESO TOTAL']).fillna(0).round(2)
+        productos['$ por Unidad'] = (productos['MONTO_FACTURADO'] / productos['CANT']).fillna(0).round(2)
+        productos['$ por Kg'] = (productos['MONTO_FACTURADO'] / productos['PESO TOTAL']).fillna(0).round(2)
         
         # Normalizar métricas para el índice (0-100)
-        # Eficiencia de fundición: S/ por Kg (mayor es mejor)
-        max_precio_kg = productos['S/ por Kg'].max()
-        productos['Eficiencia Fundición'] = ((productos['S/ por Kg'] / max_precio_kg) * 100).fillna(0).round(2) if max_precio_kg > 0 else 0
+        # Eficiencia de fundición: $ por Kg (mayor es mejor)
+        max_precio_kg = productos['$ por Kg'].max()
+        productos['Eficiencia Fundición'] = ((productos['$ por Kg'] / max_precio_kg) * 100).fillna(0).round(2) if max_precio_kg > 0 else 0
         
         # Eficiencia de mano de obra: Inverso de cantidad (menos piezas es mejor)
         max_cantidad = productos['CANT'].max()
@@ -403,11 +403,11 @@ class AnalizadorVentas:
         # Generar recomendaciones
         def generar_recomendacion(row):
             if row['Prioridad'] == 'Alta':
-                return f"✅ ACEPTAR: Alto valor por kg (S/{row['S/ por Kg']:.2f}/kg) y eficiente en mano de obra."
+                return f"✅ ACEPTAR: Alto valor por kg (${row['$ por Kg']:.2f}/kg) y eficiente en mano de obra."
             elif row['Prioridad'] == 'Media':
                 return f"⚠️ EVALUAR: Rentabilidad moderada. Considerar capacidad disponible."
             else:
-                return f"❌ RECHAZAR: Baja rentabilidad (S/{row['S/ por Kg']:.2f}/kg) o requiere mucha mano de obra ({int(row['CANT'])} piezas)."
+                return f"❌ RECHAZAR: Baja rentabilidad (${row['$ por Kg']:.2f}/kg) o requiere mucha mano de obra ({int(row['CANT'])} piezas)."
         
         productos['Recomendación'] = productos.apply(generar_recomendacion, axis=1)
         
@@ -417,13 +417,13 @@ class AnalizadorVentas:
         # Seleccionar y renombrar columnas finales
         productos = productos[[
             'CODIGO', 'NOMBRE', 'CANT', 'PESO TOTAL', 'MONTO_FACTURADO',
-            'Peso Unitario (kg)', 'S/ por Unidad', 'S/ por Kg',
+            'Peso Unitario (kg)', '$ por Unidad', '$ por Kg',
             'Índice Global', 'Prioridad', 'Recomendación'
         ]]
         
         productos.columns = [
             'Código', 'Nombre', 'Cantidad Total', 'Peso Total (kg)', 'Facturación Total',
-            'Peso Unitario (kg)', 'S/ por Unidad', 'S/ por Kg',
+            'Peso Unitario (kg)', '$ por Unidad', '$ por Kg',
             'Índice Global', 'Prioridad', 'Recomendación'
         ]
         
@@ -459,8 +459,8 @@ class AnalizadorVentas:
         
         productos['Segmento BCG'] = productos.apply(clasificar_bcg, axis=1)
         
-        # Calcular S/ por Kg
-        productos['S/ por Kg'] = (productos['MONTO_FACTURADO'] / productos['PESO TOTAL']).fillna(0).round(2)
+        # Calcular $ por Kg
+        productos['$ por Kg'] = (productos['MONTO_FACTURADO'] / productos['PESO TOTAL']).fillna(0).round(2)
         
         # Generar estrategia
         def generar_estrategia(segmento):
@@ -483,12 +483,12 @@ class AnalizadorVentas:
         # Seleccionar columnas finales
         productos = productos[[
             'CODIGO', 'NOMBRE', 'PESO TOTAL', 'MONTO_FACTURADO', 'CANT',
-            'S/ por Kg', 'Segmento BCG', 'Estrategia'
+            '$ por Kg', 'Segmento BCG', 'Estrategia'
         ]]
         
         productos.columns = [
             'Código', 'Nombre', 'Peso Total (kg)', 'Facturación Total', 'Cantidad',
-            'S/ por Kg', 'Segmento BCG', 'Estrategia'
+            '$ por Kg', 'Segmento BCG', 'Estrategia'
         ]
         
         return productos

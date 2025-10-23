@@ -165,26 +165,26 @@ class GeneradorReporte:
                          self.formatos['titulo'])
         row += 1
         sheet.merge_range(row, 0, row, 10,
-                         'Índice Global = 60% Eficiencia Fundición (S/ por Kg) + 40% Eficiencia Mano de Obra (menos piezas)',
+                         'Índice Global = 60% Eficiencia Fundición ($ por Kg) + 40% Eficiencia Mano de Obra (menos piezas)',
                          self.formatos['subtitulo'])
         row += 2
       
         # Explicación
         sheet.merge_range(row, 0, row, 10,
-                         '💡 CÓMO USAR: Prioriza productos con Índice Global alto (verde). Estos maximizan S/ por kg fundido y minimizan mano de obra.',
+                         '💡 CÓMO USAR: Prioriza productos con Índice Global alto (verde). Estos maximizan $ por kg fundido y minimizan mano de obra.',
                          self.formatos['normal'])
         row += 2
       
         # Tabla
         self._escribir_dataframe_priorizacion(sheet, matriz_decision, row, 0)
       
-        # Gráfico de dispersión: S/ por Kg vs Cantidad
+        # Gráfico de dispersión: $ por Kg vs Cantidad
         if len(matriz_decision) > 0:
             chart = self.workbook.add_chart({'type': 'scatter'})
           
             # Obtener índices de columnas
             col_cantidad = 2  # Cantidad Total
-            col_precio_kg = 7  # S/ por Kg
+            col_precio_kg = 7  # $ por Kg
           
             chart.add_series({
                 'name': 'Productos',
@@ -193,9 +193,9 @@ class GeneradorReporte:
                 'marker': {'type': 'circle', 'size': 8},
             })
           
-            chart.set_title({'name': 'Eficiencia: S/ por Kg vs Cantidad de Piezas'})
+            chart.set_title({'name': 'Eficiencia: $ por Kg vs Cantidad de Piezas'})
             chart.set_x_axis({'name': 'Cantidad de Piezas (menos es mejor)'})
-            chart.set_y_axis({'name': 'S/ por Kg (más es mejor)'})
+            chart.set_y_axis({'name': '$ por Kg (más es mejor)'})
             chart.set_size({'width': 900, 'height': 500})
             chart.set_legend({'position': 'none'})
           
@@ -295,7 +295,7 @@ class GeneradorReporte:
           
             chart2.set_title({'name': 'Matriz BCG: Peso Total vs Facturación'})
             chart2.set_x_axis({'name': 'Peso Total (kg)'})
-            chart2.set_y_axis({'name': 'Facturación Total (S/)'})
+            chart2.set_y_axis({'name': 'Facturación Total ($)'})
             chart2.set_size({'width': 900, 'height': 500})
             chart2.set_legend({'position': 'none'})
           
@@ -430,7 +430,7 @@ class GeneradorReporte:
       
         # Título
         sheet.merge_range(row, 0, row, 7,
-                         '💰 PARETO POR FACTURACIÓN - Ingresos (S/)',
+                         '💰 PARETO POR FACTURACIÓN - Ingresos ($)',
                          self.formatos['titulo'])
         row += 1
         sheet.merge_range(row, 0, row, 7,
@@ -453,7 +453,7 @@ class GeneradorReporte:
         if len(pareto_facturacion) > 0:
             chart = self.workbook.add_chart({'type': 'column'})
             chart.add_series({
-                'name': 'Facturación Total (S/)',
+                'name': 'Facturación Total ($)',
                 'categories': ['5. Pareto por Facturación', row + 1, 1, row + min(20, len(pareto_facturacion)), 1],
                 'values': ['5. Pareto por Facturación', row + 1, 2, row + min(20, len(pareto_facturacion)), 2],
                 'y2_axis': False,
@@ -471,7 +471,7 @@ class GeneradorReporte:
           
             chart.set_title({'name': 'Diagrama de Pareto - Facturación (Top 20 Productos)'})
             chart.set_x_axis({'name': 'Producto'})
-            chart.set_y_axis({'name': 'Facturación Total (S/)'})
+            chart.set_y_axis({'name': 'Facturación Total ($)'})
             chart.set_y2_axis({'name': '% Acumulado', 'min': 0, 'max': 100})
             chart.set_size({'width': 1000, 'height': 500})
             chart.set_legend({'position': 'top'})
@@ -511,7 +511,7 @@ class GeneradorReporte:
                     formato = self.formatos['texto_wrap']
                 elif isinstance(cell_value, str):
                     formato = self.formatos['normal']
-                elif 'Facturación' in df_clean.columns[col_num] or 'S/' in df_clean.columns[col_num]:
+                elif 'Facturación' in df_clean.columns[col_num] or '$' in df_clean.columns[col_num]:
                     formato = self.formatos['moneda']
                 elif 'Índice' in df_clean.columns[col_num]:
                     formato = self.formatos['numero']
@@ -670,7 +670,7 @@ class GeneradorReporte:
           
             chart.set_title({'name': 'Diagrama de Pareto (Top 20 Productos)'})
             chart.set_x_axis({'name': 'Producto'})
-            chart.set_y_axis({'name': 'Facturación (S/)'})
+            chart.set_y_axis({'name': 'Facturación ($)'})
             chart.set_y2_axis({'name': '% Acumulado'})
             chart.set_size({'width': 900, 'height': 500})
             chart.set_legend({'position': 'bottom'})
@@ -770,7 +770,7 @@ class GeneradorReporte:
             })
             chart.set_title({'name': 'Tendencia de Facturación Mensual'})
             chart.set_x_axis({'name': 'Mes'})
-            chart.set_y_axis({'name': 'Facturación (S/)'})
+            chart.set_y_axis({'name': 'Facturación ($)'})
             chart.set_size({'width': 720, 'height': 400})
             sheet.insert_chart(len(ventas_mes) + 4, 0, chart)
       
@@ -846,7 +846,7 @@ class GeneradorReporte:
                 formato = self.formatos['normal']
                 if isinstance(cell_value, str):
                     formato = self.formatos['normal']
-                elif 'Factura' in df_clean.columns[col_num] or 'S/' in df_clean.columns[col_num] or 'Precio' in df_clean.columns[col_num]:
+                elif 'Factura' in df_clean.columns[col_num] or '$' in df_clean.columns[col_num] or 'Precio' in df_clean.columns[col_num]:
                     formato = self.formatos['moneda']
                 elif '%' in df_clean.columns[col_num]:
                     formato = self.formatos['porcentaje']
@@ -888,7 +888,7 @@ class GeneradorReporte:
             'MONTO_FACTURADO': 'sum'
         }).reset_index()
 
-        comparativa.columns = ['Código', 'Nombre', 'Cantidad Total', 'Peso Total (kg)', 'Facturación Total (S/)']
+        comparativa.columns = ['Código', 'Nombre', 'Cantidad Total', 'Peso Total (kg)', 'Facturación Total ($)']
         comparativa = comparativa.sort_values('Peso Total (kg)', ascending=False).head(20)
 
         # Insight

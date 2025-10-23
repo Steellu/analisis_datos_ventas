@@ -75,7 +75,7 @@ def main():
         # 2. Generar análisis
         print("\n📈 Paso 2: Generando análisis...")
         resumen = analizador.resumen_general()
-        print(f"   ✓ Total facturado: S/ {resumen['total_facturado']:,.2f}")
+        print(f"   ✓ Total facturado: $ {resumen['total_facturado']:,.2f}")
         print(f"   ✓ Total órdenes: {resumen['total_ordenes']}")
         print(f"   ✓ Productos únicos: {resumen['productos_unicos']}")
         
