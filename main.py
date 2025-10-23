@@ -75,7 +75,7 @@ def main():
         # 2. Generar análisis
         print("\n📈 Paso 2: Generando análisis...")
         resumen = analizador.resumen_general()
-        print(f"   ✓ Total facturado: $ {resumen['total_facturado']:,.2f}")
+        print(f"   ✓ Total facturado: S/ {resumen['total_facturado']:,.2f}")
         print(f"   ✓ Total órdenes: {resumen['total_ordenes']}")
         print(f"   ✓ Productos únicos: {resumen['productos_unicos']}")
         
@@ -94,7 +94,6 @@ def main():
         precio_kg = analizador.productos_precio_alto_kg(10)
         print(f"   ✓ Productos precio/kg: {len(precio_kg)} productos")
         
-        # NUEVOS ANÁLISIS
         pareto = analizador.analisis_pareto()
         print(f"   ✓ Análisis de Pareto: {pareto['porcentaje_productos_80']}% de productos generan 80% de ventas")
         
@@ -104,10 +103,27 @@ def main():
         frecuencia = analizador.frecuencia_compra()
         print(f"   ✓ Frecuencia de compra: cada {frecuencia['dias_entre_compras']} días")
         
+        # NUEVOS ANÁLISIS DE PRIORIZACIÓN
+        print("\n🎯 Paso 3: Generando análisis de priorización...")
+        pareto_peso = analizador.pareto_por_peso()
+        print(f"   ✓ Pareto por Peso: {len(pareto_peso)} productos analizados")
+        
+        pareto_cantidad = analizador.pareto_por_cantidad()
+        print(f"   ✓ Pareto por Cantidad: {len(pareto_cantidad)} productos analizados")
+        
+        pareto_facturacion = analizador.pareto_por_facturacion()
+        print(f"   ✓ Pareto por Facturación: {len(pareto_facturacion)} productos analizados")
+        
+        matriz_decision = analizador.matriz_decision()
+        print(f"   ✓ Matriz de Decisión: {len(matriz_decision)} productos con índice global")
+        
+        segmentacion_bcg = analizador.segmentacion_bcg()
+        print(f"   ✓ Segmentación BCG: {len(segmentacion_bcg)} productos clasificados")
+        
         df_completo = analizador.obtener_dataframe_completo()
         
-        # 3. Generar reporte Excel
-        print("\n📝 Paso 3: Generando reporte Excel...")
+        # 4. Generar reporte Excel
+        print("\n📝 Paso 4: Generando reporte Excel...")
         generador = GeneradorReporte(ruta_output)
         generador.generar_reporte_completo(
             resumen=resumen,
@@ -119,7 +135,13 @@ def main():
             df_completo=df_completo,
             pareto=pareto,
             crecimiento=crecimiento,
-            frecuencia=frecuencia
+            frecuencia=frecuencia,
+            # NUEVOS PARÁMETROS
+            pareto_peso=pareto_peso,
+            pareto_cantidad=pareto_cantidad,
+            pareto_facturacion=pareto_facturacion,
+            matriz_decision=matriz_decision,
+            segmentacion_bcg=segmentacion_bcg
         )
         
         print()
@@ -128,6 +150,10 @@ def main():
         print("=" * 60)
         print(f"\n📄 Reporte generado en:")
         print(f"   {os.path.abspath(ruta_output)}")
+        print()
+        print("🎯 NUEVA HOJA AGREGADA: 'Análisis de Priorización'")
+        print("   Esta hoja te ayudará a decidir qué pedidos aceptar")
+        print("   cuando tengas capacidad limitada de fundición y mano de obra.")
         print()
         
     except Exception as e:

@@ -4,6 +4,7 @@ Contiene la clase AnalizadorVentas que procesa datos de Excel y genera métricas
 """
 
 import pandas as pd
+import numpy as np
 from datetime import datetime
 from typing import Dict, Any
 
@@ -50,10 +51,6 @@ class AnalizadorVentas:
     def _limpiar_datos(self):
         """
         Limpia y prepara los datos para el análisis.
-        - Convierte fechas al formato correcto
-        - Elimina filas vacías o con datos inválidos
-        - Asegura que los valores numéricos sean del tipo correcto
-        - Limpia nombres de columnas (elimina espacios extra)
         """
         # Limpiar nombres de columnas (eliminar espacios al inicio y final)
         self.df.columns = [col.strip() for col in self.df.columns]
@@ -78,9 +75,6 @@ class AnalizadorVentas:
     def resumen_general(self) -> Dict[str, Any]:
         """
         Genera un resumen general de las ventas del cliente.
-        
-        Returns:
-            Dict con métricas generales: total facturado, órdenes, productos únicos, etc.
         """
         resumen = {
             'cliente': self.cliente,
@@ -98,12 +92,6 @@ class AnalizadorVentas:
     def top_productos_cantidad(self, top_n: int = 10) -> pd.DataFrame:
         """
         Obtiene los productos más vendidos por cantidad.
-        
-        Args:
-            top_n (int): Número de productos a retornar
-            
-        Returns:
-            DataFrame con los top productos por cantidad
         """
         top = self.df.groupby(['CODIGO', 'NOMBRE']).agg({
             'CANT': 'sum',
@@ -113,7 +101,6 @@ class AnalizadorVentas:
         
         top = top.sort_values('CANT', ascending=False).head(top_n)
         
-        # CORRECCIÓN: Asegurar que las columnas estén en el orden correcto
         top = top[['CODIGO', 'NOMBRE', 'CANT', 'MONTO_FACTURADO', 'PESO TOTAL']]
         top.columns = ['Código', 'Nombre', 'Cantidad Total', 'Facturación Total', 'Peso Total']
         return top
@@ -121,12 +108,6 @@ class AnalizadorVentas:
     def top_productos_facturacion(self, top_n: int = 10) -> pd.DataFrame:
         """
         Obtiene los productos con mayor facturación.
-        
-        Args:
-            top_n (int): Número de productos a retornar
-            
-        Returns:
-            DataFrame con los top productos por facturación
         """
         top = self.df.groupby(['CODIGO', 'NOMBRE']).agg({
             'MONTO_FACTURADO': 'sum',
@@ -136,7 +117,6 @@ class AnalizadorVentas:
         
         top = top.sort_values('MONTO_FACTURADO', ascending=False).head(top_n)
         
-        # CORRECCIÓN: Asegurar que las columnas estén en el orden correcto
         top = top[['CODIGO', 'NOMBRE', 'MONTO_FACTURADO', 'CANT', 'PESO TOTAL']]
         top.columns = ['Código', 'Nombre', 'Facturación Total', 'Cantidad Total', 'Peso Total']
         return top
@@ -144,9 +124,6 @@ class AnalizadorVentas:
     def analisis_categorias(self) -> pd.DataFrame:
         """
         Analiza las ventas por categoría de producto.
-        
-        Returns:
-            DataFrame con métricas por categoría
         """
         if 'CATEGORIA' not in self.df.columns:
             return pd.DataFrame()
@@ -173,9 +150,6 @@ class AnalizadorVentas:
     def ventas_por_mes(self) -> pd.DataFrame:
         """
         Analiza las ventas agrupadas por mes.
-        
-        Returns:
-            DataFrame con ventas mensuales
         """
         if 'MES_ANIO' not in self.df.columns:
             return pd.DataFrame()
@@ -195,14 +169,7 @@ class AnalizadorVentas:
     def productos_precio_alto_kg(self, top_n: int = 10) -> pd.DataFrame:
         """
         Obtiene los productos con mayor precio por kilogramo.
-        
-        Args:
-            top_n (int): Número de productos a retornar
-            
-        Returns:
-            DataFrame con productos de mayor precio/kg
         """
-        # Calcular precio por kg para cada producto
         productos = self.df.groupby(['CODIGO', 'NOMBRE']).agg({
             'MONTO_FACTURADO': 'sum',
             'PESO TOTAL': 'sum',
@@ -222,41 +189,30 @@ class AnalizadorVentas:
     def analisis_pareto(self) -> Dict[str, Any]:
         """
         Aplica la Ley de Pareto (80/20) a los productos.
-        Identifica qué porcentaje de productos genera el 80% de la facturación.
-        
-        Returns:
-            Dict con análisis de Pareto y DataFrame con productos acumulados
         """
-        # Agrupar por producto y calcular facturación total
         productos = self.df.groupby(['CODIGO', 'NOMBRE']).agg({
             'MONTO_FACTURADO': 'sum'
         }).reset_index()
         
-        # Ordenar por facturación descendente
         productos = productos.sort_values('MONTO_FACTURADO', ascending=False)
         
-        # Calcular facturación acumulada y porcentaje acumulado
         productos['Facturación Acumulada'] = productos['MONTO_FACTURADO'].cumsum()
         total_facturado = productos['MONTO_FACTURADO'].sum()
         productos['% Acumulado'] = (productos['Facturación Acumulada'] / total_facturado * 100).fillna(0).round(2)
         productos['% Individual'] = (productos['MONTO_FACTURADO'] / total_facturado * 100).fillna(0).round(2)
         
-        # Identificar productos que representan el 80%
         productos_80 = productos[productos['% Acumulado'] <= 80]
         total_productos = len(productos)
         productos_80_count = len(productos_80)
         porcentaje_productos_80 = round((productos_80_count / total_productos * 100), 2) if total_productos > 0 else 0
         
-        # Identificar productos que representan el 20% restante
         productos_20 = productos[productos['% Acumulado'] > 80]
         productos_20_count = len(productos_20)
         porcentaje_productos_20 = round((productos_20_count / total_productos * 100), 2) if total_productos > 0 else 0
         
-        # Facturación del 80% y 20%
         facturacion_80 = productos_80['MONTO_FACTURADO'].sum()
         facturacion_20 = productos_20['MONTO_FACTURADO'].sum()
         
-        # Renombrar columnas para el reporte
         productos.columns = ['Código', 'Nombre', 'Facturación', 'Facturación Acumulada', '% Acumulado', '% Individual']
         
         resultado = {
@@ -275,9 +231,6 @@ class AnalizadorVentas:
     def crecimiento_mensual(self) -> pd.DataFrame:
         """
         Calcula el crecimiento porcentual mes a mes.
-        
-        Returns:
-            DataFrame con crecimiento mensual
         """
         if 'MES_ANIO' not in self.df.columns:
             return pd.DataFrame()
@@ -288,11 +241,9 @@ class AnalizadorVentas:
         
         ventas_mes = ventas_mes.sort_values('MES_ANIO')
         
-        # Calcular crecimiento porcentual
         ventas_mes['Crecimiento %'] = ventas_mes['MONTO_FACTURADO'].pct_change() * 100
         ventas_mes['Crecimiento %'] = ventas_mes['Crecimiento %'].fillna(0).round(2)
         
-        # Calcular diferencia absoluta
         ventas_mes['Diferencia $'] = ventas_mes['MONTO_FACTURADO'].diff()
         
         ventas_mes['MES_ANIO'] = ventas_mes['MES_ANIO'].astype(str)
@@ -303,9 +254,6 @@ class AnalizadorVentas:
     def frecuencia_compra(self) -> Dict[str, Any]:
         """
         Calcula la frecuencia de compra del cliente.
-        
-        Returns:
-            Dict con métricas de frecuencia de compra
         """
         if 'FECHA' not in self.df.columns or self.df['FECHA'].isna().all():
             return {
@@ -317,7 +265,6 @@ class AnalizadorVentas:
                 'total_ordenes': 0
             }
         
-        # Obtener fechas únicas de órdenes
         ordenes = self.df.groupby('OV')['FECHA'].min().sort_values()
         
         if len(ordenes) < 2:
@@ -330,11 +277,9 @@ class AnalizadorVentas:
                 'total_ordenes': len(ordenes)
             }
         
-        # Calcular diferencias entre fechas
         diferencias = ordenes.diff().dt.days.dropna()
         dias_promedio = diferencias.mean()
         
-        # Calcular métricas
         primera_compra = ordenes.iloc[0]
         ultima_compra = ordenes.iloc[-1]
         dias_totales = (ultima_compra - primera_compra).days
@@ -349,11 +294,207 @@ class AnalizadorVentas:
             'total_ordenes': len(ordenes)
         }
     
+    # ========== NUEVAS FUNCIONES PARA ANÁLISIS DE PRIORIZACIÓN ==========
+    
+    def pareto_por_peso(self) -> pd.DataFrame:
+        """
+        Análisis Pareto por Peso (capacidad de fundición).
+        """
+        productos = self.df.groupby(['CODIGO', 'NOMBRE']).agg({
+            'PESO TOTAL': 'sum',
+            'MONTO_FACTURADO': 'sum',
+            'CANT': 'sum'
+        }).reset_index()
+        
+        productos = productos.sort_values('PESO TOTAL', ascending=False)
+        
+        productos['Peso Acumulado'] = productos['PESO TOTAL'].cumsum()
+        total_peso = productos['PESO TOTAL'].sum()
+        productos['% Acumulado'] = (productos['Peso Acumulado'] / total_peso * 100).fillna(0).round(2)
+        productos['% Individual'] = (productos['PESO TOTAL'] / total_peso * 100).fillna(0).round(2)
+        
+        productos.columns = ['Código', 'Nombre', 'Peso Total (kg)', 'Facturación', 'Cantidad', 'Peso Acumulado', '% Acumulado', '% Individual']
+        
+        return productos
+    
+    def pareto_por_cantidad(self) -> pd.DataFrame:
+        """
+        Análisis Pareto por Cantidad (mano de obra).
+        """
+        productos = self.df.groupby(['CODIGO', 'NOMBRE']).agg({
+            'CANT': 'sum',
+            'MONTO_FACTURADO': 'sum',
+            'PESO TOTAL': 'sum'
+        }).reset_index()
+        
+        productos = productos.sort_values('CANT', ascending=False)
+        
+        productos['Cantidad Acumulada'] = productos['CANT'].cumsum()
+        total_cantidad = productos['CANT'].sum()
+        productos['% Acumulado'] = (productos['Cantidad Acumulada'] / total_cantidad * 100).fillna(0).round(2)
+        productos['% Individual'] = (productos['CANT'] / total_cantidad * 100).fillna(0).round(2)
+        
+        productos.columns = ['Código', 'Nombre', 'Cantidad Total', 'Facturación', 'Peso Total (kg)', 'Cantidad Acumulada', '% Acumulado', '% Individual']
+        
+        return productos
+    
+    def pareto_por_facturacion(self) -> pd.DataFrame:
+        """
+        Análisis Pareto por Facturación (ingresos).
+        """
+        productos = self.df.groupby(['CODIGO', 'NOMBRE']).agg({
+            'MONTO_FACTURADO': 'sum',
+            'PESO TOTAL': 'sum',
+            'CANT': 'sum'
+        }).reset_index()
+        
+        productos = productos.sort_values('MONTO_FACTURADO', ascending=False)
+        
+        productos['Facturación Acumulada'] = productos['MONTO_FACTURADO'].cumsum()
+        total_facturacion = productos['MONTO_FACTURADO'].sum()
+        productos['% Acumulado'] = (productos['Facturación Acumulada'] / total_facturacion * 100).fillna(0).round(2)
+        productos['% Individual'] = (productos['MONTO_FACTURADO'] / total_facturacion * 100).fillna(0).round(2)
+        
+        productos.columns = ['Código', 'Nombre', 'Facturación Total', 'Peso Total (kg)', 'Cantidad', 'Facturación Acumulada', '% Acumulado', '% Individual']
+        
+        return productos
+    
+    def matriz_decision(self) -> pd.DataFrame:
+        """
+        Matriz de Decisión con Índice Global, Prioridad y Recomendaciones.
+        """
+        productos = self.df.groupby(['CODIGO', 'NOMBRE']).agg({
+            'CANT': 'sum',
+            'PESO TOTAL': 'sum',
+            'MONTO_FACTURADO': 'sum'
+        }).reset_index()
+        
+        # Calcular métricas unitarias
+        productos['Peso Unitario (kg)'] = (productos['PESO TOTAL'] / productos['CANT']).fillna(0).round(3)
+        productos['S/ por Unidad'] = (productos['MONTO_FACTURADO'] / productos['CANT']).fillna(0).round(2)
+        productos['S/ por Kg'] = (productos['MONTO_FACTURADO'] / productos['PESO TOTAL']).fillna(0).round(2)
+        
+        # Normalizar métricas para el índice (0-100)
+        # Eficiencia de fundición: S/ por Kg (mayor es mejor)
+        max_precio_kg = productos['S/ por Kg'].max()
+        productos['Eficiencia Fundición'] = ((productos['S/ por Kg'] / max_precio_kg) * 100).fillna(0).round(2) if max_precio_kg > 0 else 0
+        
+        # Eficiencia de mano de obra: Inverso de cantidad (menos piezas es mejor)
+        max_cantidad = productos['CANT'].max()
+        productos['Eficiencia Mano Obra'] = ((1 - (productos['CANT'] / max_cantidad)) * 100).fillna(0).round(2) if max_cantidad > 0 else 0
+        
+        # Índice Global: 60% fundición + 40% mano de obra
+        productos['Índice Global'] = (
+            productos['Eficiencia Fundición'] * 0.6 + 
+            productos['Eficiencia Mano Obra'] * 0.4
+        ).round(2)
+        
+        # Clasificar prioridad
+        def clasificar_prioridad(indice):
+            if indice >= 70:
+                return 'Alta'
+            elif indice >= 40:
+                return 'Media'
+            else:
+                return 'Baja'
+        
+        productos['Prioridad'] = productos['Índice Global'].apply(clasificar_prioridad)
+        
+        # Generar recomendaciones
+        def generar_recomendacion(row):
+            if row['Prioridad'] == 'Alta':
+                return f"✅ ACEPTAR: Alto valor por kg (S/{row['S/ por Kg']:.2f}/kg) y eficiente en mano de obra."
+            elif row['Prioridad'] == 'Media':
+                return f"⚠️ EVALUAR: Rentabilidad moderada. Considerar capacidad disponible."
+            else:
+                return f"❌ RECHAZAR: Baja rentabilidad (S/{row['S/ por Kg']:.2f}/kg) o requiere mucha mano de obra ({int(row['CANT'])} piezas)."
+        
+        productos['Recomendación'] = productos.apply(generar_recomendacion, axis=1)
+        
+        # Ordenar por Índice Global
+        productos = productos.sort_values('Índice Global', ascending=False)
+        
+        # Seleccionar y renombrar columnas finales
+        productos = productos[[
+            'CODIGO', 'NOMBRE', 'CANT', 'PESO TOTAL', 'MONTO_FACTURADO',
+            'Peso Unitario (kg)', 'S/ por Unidad', 'S/ por Kg',
+            'Índice Global', 'Prioridad', 'Recomendación'
+        ]]
+        
+        productos.columns = [
+            'Código', 'Nombre', 'Cantidad Total', 'Peso Total (kg)', 'Facturación Total',
+            'Peso Unitario (kg)', 'S/ por Unidad', 'S/ por Kg',
+            'Índice Global', 'Prioridad', 'Recomendación'
+        ]
+        
+        return productos
+    
+    def segmentacion_bcg(self) -> pd.DataFrame:
+        """
+        Segmentación BCG: Estrellas, Vacas Lecheras, Desafiantes, Perros.
+        """
+        productos = self.df.groupby(['CODIGO', 'NOMBRE']).agg({
+            'PESO TOTAL': 'sum',
+            'MONTO_FACTURADO': 'sum',
+            'CANT': 'sum'
+        }).reset_index()
+        
+        # Calcular medianas para clasificación
+        mediana_peso = productos['PESO TOTAL'].median()
+        mediana_facturacion = productos['MONTO_FACTURADO'].median()
+        
+        # Clasificar productos
+        def clasificar_bcg(row):
+            alto_peso = row['PESO TOTAL'] >= mediana_peso
+            alta_facturacion = row['MONTO_FACTURADO'] >= mediana_facturacion
+            
+            if alto_peso and alta_facturacion:
+                return '⭐ Estrellas'
+            elif not alto_peso and alta_facturacion:
+                return '🐄 Vacas Lecheras'
+            elif alto_peso and not alta_facturacion:
+                return '⚡ Desafiantes'
+            else:
+                return '🐕 Perros'
+        
+        productos['Segmento BCG'] = productos.apply(clasificar_bcg, axis=1)
+        
+        # Calcular S/ por Kg
+        productos['S/ por Kg'] = (productos['MONTO_FACTURADO'] / productos['PESO TOTAL']).fillna(0).round(2)
+        
+        # Generar estrategia
+        def generar_estrategia(segmento):
+            if segmento == '⭐ Estrellas':
+                return 'Mantener y crecer. Alto volumen y alta rentabilidad.'
+            elif segmento == '🐄 Vacas Lecheras':
+                return '🎯 MÁXIMA PRIORIDAD: Bajo peso, alta facturación. Ideal para capacidad limitada.'
+            elif segmento == '⚡ Desafiantes':
+                return 'Revisar precios. Alto consumo de fundición con baja rentabilidad.'
+            else:
+                return 'Considerar descontinuar. Bajo impacto en ventas y fundición.'
+        
+        productos['Estrategia'] = productos['Segmento BCG'].apply(generar_estrategia)
+        
+        # Ordenar por segmento (Vacas Lecheras primero)
+        orden_segmentos = {'🐄 Vacas Lecheras': 1, '⭐ Estrellas': 2, '⚡ Desafiantes': 3, '🐕 Perros': 4}
+        productos['Orden'] = productos['Segmento BCG'].map(orden_segmentos)
+        productos = productos.sort_values('Orden')
+        
+        # Seleccionar columnas finales
+        productos = productos[[
+            'CODIGO', 'NOMBRE', 'PESO TOTAL', 'MONTO_FACTURADO', 'CANT',
+            'S/ por Kg', 'Segmento BCG', 'Estrategia'
+        ]]
+        
+        productos.columns = [
+            'Código', 'Nombre', 'Peso Total (kg)', 'Facturación Total', 'Cantidad',
+            'S/ por Kg', 'Segmento BCG', 'Estrategia'
+        ]
+        
+        return productos
+    
     def obtener_dataframe_completo(self) -> pd.DataFrame:
         """
         Retorna el DataFrame completo procesado.
-        
-        Returns:
-            DataFrame con todos los datos
         """
         return self.df.copy()
