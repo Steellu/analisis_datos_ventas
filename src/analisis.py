@@ -359,75 +359,75 @@ class AnalizadorVentas:
         
         return productos
     
-    def matriz_decision(self) -> pd.DataFrame:
-        """
-        Matriz de Decisión con Índice Global, Prioridad y Recomendaciones.
-        """
-        productos = self.df.groupby(['CODIGO', 'NOMBRE']).agg({
-            'CANT': 'sum',
-            'PESO TOTAL': 'sum',
-            'MONTO_FACTURADO': 'sum'
-        }).reset_index()
+    # def matriz_decision(self) -> pd.DataFrame:
+    #     """
+    #     Matriz de Decisión con Índice Global, Prioridad y Recomendaciones.
+    #     """
+    #     productos = self.df.groupby(['CODIGO', 'NOMBRE']).agg({
+    #         'CANT': 'sum',
+    #         'PESO TOTAL': 'sum',
+    #         'MONTO_FACTURADO': 'sum'
+    #     }).reset_index()
         
-        # Calcular métricas unitarias
-        productos['Peso Unitario (kg)'] = (productos['PESO TOTAL'] / productos['CANT']).fillna(0).round(3)
-        productos['$ por Unidad'] = (productos['MONTO_FACTURADO'] / productos['CANT']).fillna(0).round(2)
-        productos['$ por Kg'] = (productos['MONTO_FACTURADO'] / productos['PESO TOTAL']).fillna(0).round(2)
+    #     # Calcular métricas unitarias
+    #     productos['Peso Unitario (kg)'] = (productos['PESO TOTAL'] / productos['CANT']).fillna(0).round(3)
+    #     productos['$ por Unidad'] = (productos['MONTO_FACTURADO'] / productos['CANT']).fillna(0).round(2)
+    #     productos['$ por Kg'] = (productos['MONTO_FACTURADO'] / productos['PESO TOTAL']).fillna(0).round(2)
         
-        # Normalizar métricas para el índice (0-100)
-        # Eficiencia de fundición: $ por Kg (mayor es mejor)
-        max_precio_kg = productos['$ por Kg'].max()
-        productos['Eficiencia Fundición'] = ((productos['$ por Kg'] / max_precio_kg) * 100).fillna(0).round(2) if max_precio_kg > 0 else 0
+    #     # Normalizar métricas para el índice (0-100)
+    #     # Eficiencia de fundición: $ por Kg (mayor es mejor)
+    #     max_precio_kg = productos['$ por Kg'].max()
+    #     productos['Eficiencia Fundición'] = ((productos['$ por Kg'] / max_precio_kg) * 100).fillna(0).round(2) if max_precio_kg > 0 else 0
         
-        # Eficiencia de mano de obra: Inverso de cantidad (menos piezas es mejor)
-        max_cantidad = productos['CANT'].max()
-        productos['Eficiencia Mano Obra'] = ((1 - (productos['CANT'] / max_cantidad)) * 100).fillna(0).round(2) if max_cantidad > 0 else 0
+    #     # Eficiencia de mano de obra: Inverso de cantidad (menos piezas es mejor)
+    #     max_cantidad = productos['CANT'].max()
+    #     productos['Eficiencia Mano Obra'] = ((1 - (productos['CANT'] / max_cantidad)) * 100).fillna(0).round(2) if max_cantidad > 0 else 0
         
-        # Índice Global: 60% fundición + 40% mano de obra
-        productos['Índice Global'] = (
-            productos['Eficiencia Fundición'] * 0.6 + 
-            productos['Eficiencia Mano Obra'] * 0.4
-        ).round(2)
+    #     # Índice Global: 60% fundición + 40% mano de obra
+    #     productos['Índice Global'] = (
+    #         productos['Eficiencia Fundición'] * 0.6 + 
+    #         productos['Eficiencia Mano Obra'] * 0.4
+    #     ).round(2)
         
-        # Clasificar prioridad
-        def clasificar_prioridad(indice):
-            if indice >= 70:
-                return 'Alta'
-            elif indice >= 40:
-                return 'Media'
-            else:
-                return 'Baja'
+    #     # Clasificar prioridad
+    #     def clasificar_prioridad(indice):
+    #         if indice >= 70:
+    #             return 'Alta'
+    #         elif indice >= 40:
+    #             return 'Media'
+    #         else:
+    #             return 'Baja'
         
-        productos['Prioridad'] = productos['Índice Global'].apply(clasificar_prioridad)
+    #     productos['Prioridad'] = productos['Índice Global'].apply(clasificar_prioridad)
         
-        # Generar recomendaciones
-        def generar_recomendacion(row):
-            if row['Prioridad'] == 'Alta':
-                return f"✅ ACEPTAR: Alto valor por kg (${row['$ por Kg']:.2f}/kg) y eficiente en mano de obra."
-            elif row['Prioridad'] == 'Media':
-                return f"⚠️ EVALUAR: Rentabilidad moderada. Considerar capacidad disponible."
-            else:
-                return f"❌ RECHAZAR: Baja rentabilidad (${row['$ por Kg']:.2f}/kg) o requiere mucha mano de obra ({int(row['CANT'])} piezas)."
+    #     # Generar recomendaciones
+    #     def generar_recomendacion(row):
+    #         if row['Prioridad'] == 'Alta':
+    #             return f"✅ ACEPTAR: Alto valor por kg (${row['$ por Kg']:.2f}/kg) y eficiente en mano de obra."
+    #         elif row['Prioridad'] == 'Media':
+    #             return f"⚠️ EVALUAR: Rentabilidad moderada. Considerar capacidad disponible."
+    #         else:
+    #             return f"❌ RECHAZAR: Baja rentabilidad (${row['$ por Kg']:.2f}/kg) o requiere mucha mano de obra ({int(row['CANT'])} piezas)."
         
-        productos['Recomendación'] = productos.apply(generar_recomendacion, axis=1)
+    #     productos['Recomendación'] = productos.apply(generar_recomendacion, axis=1)
         
-        # Ordenar por Índice Global
-        productos = productos.sort_values('Índice Global', ascending=False)
+    #     # Ordenar por Índice Global
+    #     productos = productos.sort_values('Índice Global', ascending=False)
         
-        # Seleccionar y renombrar columnas finales
-        productos = productos[[
-            'CODIGO', 'NOMBRE', 'CANT', 'PESO TOTAL', 'MONTO_FACTURADO',
-            'Peso Unitario (kg)', '$ por Unidad', '$ por Kg',
-            'Índice Global', 'Prioridad', 'Recomendación'
-        ]]
+    #     # Seleccionar y renombrar columnas finales
+    #     productos = productos[[
+    #         'CODIGO', 'NOMBRE', 'CANT', 'PESO TOTAL', 'MONTO_FACTURADO',
+    #         'Peso Unitario (kg)', '$ por Unidad', '$ por Kg',
+    #         'Índice Global', 'Prioridad', 'Recomendación'
+    #     ]]
         
-        productos.columns = [
-            'Código', 'Nombre', 'Cantidad Total', 'Peso Total (kg)', 'Facturación Total',
-            'Peso Unitario (kg)', '$ por Unidad', '$ por Kg',
-            'Índice Global', 'Prioridad', 'Recomendación'
-        ]
+    #     productos.columns = [
+    #         'Código', 'Nombre', 'Cantidad Total', 'Peso Total (kg)', 'Facturación Total',
+    #         'Peso Unitario (kg)', '$ por Unidad', '$ por Kg',
+    #         'Índice Global', 'Prioridad', 'Recomendación'
+    #     ]
         
-        return productos
+    #     return productos
     
     def segmentacion_bcg(self) -> pd.DataFrame:
         """

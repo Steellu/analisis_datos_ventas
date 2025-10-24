@@ -111,11 +111,11 @@ class GeneradorReporte:
                                 pareto_peso: pd.DataFrame,
                                 pareto_cantidad: pd.DataFrame,
                                 pareto_facturacion: pd.DataFrame,
-                                matriz_decision: pd.DataFrame,
+                                # matriz_decision: pd.DataFrame,
                                 segmentacion_bcg: pd.DataFrame):
-        """
-        Genera el reporte completo en Excel con todas las hojas y gráficos.
-        """
+        # """
+        # Genera el reporte completo en Excel con todas las hojas y gráficos.
+        # """
         self.workbook = xlsxwriter.Workbook(self.ruta_salida, {'nan_inf_to_errors': True})
         self._crear_formatos()
       
@@ -132,91 +132,91 @@ class GeneradorReporte:
         self._crear_hoja_productos(top_cantidad, top_facturacion, precio_kg)
         self._crear_hoja_categorias(categorias)
         self._crear_hoja_temporal(ventas_mes, crecimiento)
-        self._crear_hoja_datos_completos(df_completo)
       
         # Crear hojas (HOJAS DE PRIORIZACIÓN PRIMERO)
-        self._crear_hoja_matriz_decision(matriz_decision)
-        self._crear_hoja_segmentacion_bcg(segmentacion_bcg)
+        # self._crear_hoja_matriz_decision(matriz_decision)
+        # self._crear_hoja_segmentacion_bcg(segmentacion_bcg)
         self._crear_hoja_pareto_peso(pareto_peso)
         self._crear_hoja_pareto_cantidad(pareto_cantidad)
         self._crear_hoja_pareto_facturacion_priorizacion(pareto_facturacion)
         self._crear_hoja_comparativa_peso_cantidad(df_completo)
+        self._crear_hoja_datos_completos(df_completo)
       
         self.workbook.close()
         print(f"✅ Reporte generado exitosamente: {self.ruta_salida}")
   
     # ========== NUEVAS HOJAS DE PRIORIZACIÓN ==========
   
-    def _crear_hoja_matriz_decision(self, matriz_decision: pd.DataFrame):
-        """
-        Crea la hoja de Matriz de Decisión (LA MÁS IMPORTANTE).
-        """
-        sheet = self.workbook.add_worksheet('1. Matriz de Decisión')
-        sheet.set_column('A:B', 12)
-        sheet.set_column('C:I', 14)
-        sheet.set_column('J:J', 12)
-        sheet.set_column('K:K', 50)
+    # def _crear_hoja_matriz_decision(self, matriz_decision: pd.DataFrame):
+    #     """
+    #     Crea la hoja de Matriz de Decisión (LA MÁS IMPORTANTE).
+    #     """
+    #     sheet = self.workbook.add_worksheet('1. Matriz de Decisión')
+    #     sheet.set_column('A:B', 12)
+    #     sheet.set_column('C:I', 14)
+    #     sheet.set_column('J:J', 12)
+    #     sheet.set_column('K:K', 50)
       
-        row = 0
+    #     row = 0
       
-        # Título
-        sheet.merge_range(row, 0, row, 10,
-                         '🎯 MATRIZ DE DECISIÓN - ÍNDICE GLOBAL DE PRIORIZACIÓN',
-                         self.formatos['titulo'])
-        row += 1
-        sheet.merge_range(row, 0, row, 10,
-                         'Índice Global = 60% Eficiencia Fundición ($ por Kg) + 40% Eficiencia Mano de Obra (menos piezas)',
-                         self.formatos['subtitulo'])
-        row += 2
+    #     # Título
+    #     sheet.merge_range(row, 0, row, 10,
+    #                      '🎯 MATRIZ DE DECISIÓN - ÍNDICE GLOBAL DE PRIORIZACIÓN',
+    #                      self.formatos['titulo'])
+    #     row += 1
+    #     sheet.merge_range(row, 0, row, 10,
+    #                      'Índice Global = 60% Eficiencia Fundición ($ por Kg) + 40% Eficiencia Mano de Obra (menos piezas)',
+    #                      self.formatos['subtitulo'])
+    #     row += 2
       
-        # Explicación
-        sheet.merge_range(row, 0, row, 10,
-                         '💡 CÓMO USAR: Prioriza productos con Índice Global alto (verde). Estos maximizan $ por kg fundido y minimizan mano de obra.',
-                         self.formatos['normal'])
-        row += 2
+    #     # Explicación
+    #     sheet.merge_range(row, 0, row, 10,
+    #                      '💡 CÓMO USAR: Prioriza productos con Índice Global alto (verde). Estos maximizan $ por kg fundido y minimizan mano de obra.',
+    #                      self.formatos['normal'])
+    #     row += 2
       
-        # Tabla
-        self._escribir_dataframe_priorizacion(sheet, matriz_decision, row, 0)
+    #     # Tabla
+    #     self._escribir_dataframe_priorizacion(sheet, matriz_decision, row, 0)
       
-        # Gráfico de dispersión: $ por Kg vs Cantidad
-        if len(matriz_decision) > 0:
-            chart = self.workbook.add_chart({'type': 'scatter'})
+    #     # Gráfico de dispersión: $ por Kg vs Cantidad
+    #     if len(matriz_decision) > 0:
+    #         chart = self.workbook.add_chart({'type': 'scatter'})
           
-            # Obtener índices de columnas
-            col_cantidad = 2  # Cantidad Total
-            col_precio_kg = 7  # $ por Kg
+    #         # Obtener índices de columnas
+    #         col_cantidad = 2  # Cantidad Total
+    #         col_precio_kg = 7  # $ por Kg
           
-            chart.add_series({
-                'name': 'Productos',
-                'categories': ['1. Matriz de Decisión', row + 1, col_cantidad, row + min(30, len(matriz_decision)), col_cantidad],
-                'values': ['1. Matriz de Decisión', row + 1, col_precio_kg, row + min(30, len(matriz_decision)), col_precio_kg],
-                'marker': {'type': 'circle', 'size': 8},
-            })
+    #         chart.add_series({
+    #             'name': 'Productos',
+    #             'categories': ['1. Matriz de Decisión', row + 1, col_cantidad, row + min(30, len(matriz_decision)), col_cantidad],
+    #             'values': ['1. Matriz de Decisión', row + 1, col_precio_kg, row + min(30, len(matriz_decision)), col_precio_kg],
+    #             'marker': {'type': 'circle', 'size': 8},
+    #         })
           
-            chart.set_title({'name': 'Eficiencia: $ por Kg vs Cantidad de Piezas'})
-            chart.set_x_axis({'name': 'Cantidad de Piezas (menos es mejor)'})
-            chart.set_y_axis({'name': '$ por Kg (más es mejor)'})
-            chart.set_size({'width': 900, 'height': 500})
-            chart.set_legend({'position': 'none'})
+    #         chart.set_title({'name': 'Eficiencia: $ por Kg vs Cantidad de Piezas'})
+    #         chart.set_x_axis({'name': 'Cantidad de Piezas (menos es mejor)'})
+    #         chart.set_y_axis({'name': '$ por Kg (más es mejor)'})
+    #         chart.set_size({'width': 900, 'height': 500})
+    #         chart.set_legend({'position': 'none'})
           
-            sheet.insert_chart(row + min(30, len(matriz_decision)) + 2, 0, chart)
+    #         sheet.insert_chart(row + min(30, len(matriz_decision)) + 2, 0, chart)
           
-            # Gráfico de barras: Top 15 por Índice Global
-            chart2 = self.workbook.add_chart({'type': 'bar'})
-            chart2.add_series({
-                'name': 'Índice Global',
-                'categories': ['1. Matriz de Decisión', row + 1, 1, row + min(15, len(matriz_decision)), 1],
-                'values': ['1. Matriz de Decisión', row + 1, 8, row + min(15, len(matriz_decision)), 8],
-                'data_labels': {'value': True},
-            })
+    #         # Gráfico de barras: Top 15 por Índice Global
+    #         chart2 = self.workbook.add_chart({'type': 'bar'})
+    #         chart2.add_series({
+    #             'name': 'Índice Global',
+    #             'categories': ['1. Matriz de Decisión', row + 1, 1, row + min(15, len(matriz_decision)), 1],
+    #             'values': ['1. Matriz de Decisión', row + 1, 8, row + min(15, len(matriz_decision)), 8],
+    #             'data_labels': {'value': True},
+    #         })
           
-            chart2.set_title({'name': 'Top 15 Productos por Índice Global'})
-            chart2.set_x_axis({'name': 'Índice Global (0-100)'})
-            chart2.set_y_axis({'name': 'Producto'})
-            chart2.set_size({'width': 900, 'height': 500})
-            chart2.set_legend({'position': 'none'})
+    #         chart2.set_title({'name': 'Top 15 Productos por Índice Global'})
+    #         chart2.set_x_axis({'name': 'Índice Global (0-100)'})
+    #         chart2.set_y_axis({'name': 'Producto'})
+    #         chart2.set_size({'width': 900, 'height': 500})
+    #         chart2.set_legend({'position': 'none'})
           
-            sheet.insert_chart(row + min(30, len(matriz_decision)) + 2, 6, chart2)
+    #         sheet.insert_chart(row + min(30, len(matriz_decision)) + 2, 6, chart2)
   
     def _crear_hoja_segmentacion_bcg(self, segmentacion_bcg: pd.DataFrame):
         """
@@ -305,7 +305,7 @@ class GeneradorReporte:
         """
         Crea la hoja de Pareto por Peso (Capacidad de Fundición).
         """
-        sheet = self.workbook.add_worksheet('3. Pareto por Peso')
+        sheet = self.workbook.add_worksheet('Pareto por Peso')
         sheet.set_column('A:H', 16)
       
         row = 0
@@ -324,7 +324,7 @@ class GeneradorReporte:
         if len(pareto_peso) > 0:
             productos_80 = pareto_peso[pareto_peso['% Acumulado'] <= 80]
             sheet.merge_range(row, 0, row, 7,
-                             f'📊 INSIGHT: {len(productos_80)} productos ({len(productos_80)/len(pareto_peso)*100:.1f}%) consumen el 80% del peso total',
+                             f'📊 PERSPECTIVA: {len(productos_80)} productos ({len(productos_80)/len(pareto_peso)*100:.1f}%) consumen el 80% del peso total',
                              self.formatos['normal'])
             row += 2
       
@@ -336,16 +336,16 @@ class GeneradorReporte:
             chart = self.workbook.add_chart({'type': 'column'})
             chart.add_series({
                 'name': 'Peso Total (kg)',
-                'categories': ['3. Pareto por Peso', row + 1, 1, row + min(20, len(pareto_peso)), 1],
-                'values': ['3. Pareto por Peso', row + 1, 2, row + min(20, len(pareto_peso)), 2],
+                'categories': ['Pareto por Peso', row + 1, 1, row + min(20, len(pareto_peso)), 1],
+                'values': ['Pareto por Peso', row + 1, 2, row + min(20, len(pareto_peso)), 2],
                 'y2_axis': False,
             })
           
             # Línea de % acumulado
             chart.add_series({
                 'name': '% Acumulado',
-                'categories': ['3. Pareto por Peso', row + 1, 1, row + min(20, len(pareto_peso)), 1],
-                'values': ['3. Pareto por Peso', row + 1, 6, row + min(20, len(pareto_peso)), 6],
+                'categories': ['Pareto por Peso', row + 1, 1, row + min(20, len(pareto_peso)), 1],
+                'values': ['Pareto por Peso', row + 1, 6, row + min(20, len(pareto_peso)), 6],
                 'y2_axis': True,
                 'line': {'color': 'red', 'width': 2.5},
                 'marker': {'type': 'circle', 'size': 5},
@@ -364,7 +364,7 @@ class GeneradorReporte:
         """
         Crea la hoja de Pareto por Cantidad (Mano de Obra).
         """
-        sheet = self.workbook.add_worksheet('4. Pareto por Cantidad')
+        sheet = self.workbook.add_worksheet('Pareto por Cantidad')
         sheet.set_column('A:H', 16)
       
         row = 0
@@ -383,7 +383,7 @@ class GeneradorReporte:
         if len(pareto_cantidad) > 0:
             productos_80 = pareto_cantidad[pareto_cantidad['% Acumulado'] <= 80]
             sheet.merge_range(row, 0, row, 7,
-                             f'📊 INSIGHT: {len(productos_80)} productos ({len(productos_80)/len(pareto_cantidad)*100:.1f}%) representan el 80% de las piezas producidas',
+                             f'📊 PERSPECTIVA: {len(productos_80)} productos ({len(productos_80)/len(pareto_cantidad)*100:.1f}%) representan el 80% de las piezas producidas',
                              self.formatos['normal'])
             row += 2
       
@@ -395,16 +395,16 @@ class GeneradorReporte:
             chart = self.workbook.add_chart({'type': 'column'})
             chart.add_series({
                 'name': 'Cantidad Total',
-                'categories': ['4. Pareto por Cantidad', row + 1, 1, row + min(20, len(pareto_cantidad)), 1],
-                'values': ['4. Pareto por Cantidad', row + 1, 2, row + min(20, len(pareto_cantidad)), 2],
+                'categories': ['Pareto por Cantidad', row + 1, 1, row + min(20, len(pareto_cantidad)), 1],
+                'values': ['Pareto por Cantidad', row + 1, 2, row + min(20, len(pareto_cantidad)), 2],
                 'y2_axis': False,
             })
           
             # Línea de % acumulado
             chart.add_series({
                 'name': '% Acumulado',
-                'categories': ['4. Pareto por Cantidad', row + 1, 1, row + min(20, len(pareto_cantidad)), 1],
-                'values': ['4. Pareto por Cantidad', row + 1, 6, row + min(20, len(pareto_cantidad)), 6],
+                'categories': ['Pareto por Cantidad', row + 1, 1, row + min(20, len(pareto_cantidad)), 1],
+                'values': ['Pareto por Cantidad', row + 1, 6, row + min(20, len(pareto_cantidad)), 6],
                 'y2_axis': True,
                 'line': {'color': 'red', 'width': 2.5},
                 'marker': {'type': 'circle', 'size': 5},
@@ -423,7 +423,7 @@ class GeneradorReporte:
         """
         Crea la hoja de Pareto por Facturación (Ingresos).
         """
-        sheet = self.workbook.add_worksheet('5. Pareto por Facturación')
+        sheet = self.workbook.add_worksheet('Pareto por Facturación')
         sheet.set_column('A:H', 16)
       
         row = 0
@@ -442,7 +442,7 @@ class GeneradorReporte:
         if len(pareto_facturacion) > 0:
             productos_80 = pareto_facturacion[pareto_facturacion['% Acumulado'] <= 80]
             sheet.merge_range(row, 0, row, 7,
-                             f'📊 INSIGHT: {len(productos_80)} productos ({len(productos_80)/len(pareto_facturacion)*100:.1f}%) generan el 80% de la facturación',
+                             f'📊 PERSPECTIVA: {len(productos_80)} productos ({len(productos_80)/len(pareto_facturacion)*100:.1f}%) generan el 80% de la facturación',
                              self.formatos['normal'])
             row += 2
       
@@ -454,16 +454,16 @@ class GeneradorReporte:
             chart = self.workbook.add_chart({'type': 'column'})
             chart.add_series({
                 'name': 'Facturación Total ($)',
-                'categories': ['5. Pareto por Facturación', row + 1, 1, row + min(20, len(pareto_facturacion)), 1],
-                'values': ['5. Pareto por Facturación', row + 1, 2, row + min(20, len(pareto_facturacion)), 2],
+                'categories': ['Pareto por Facturación', row + 1, 1, row + min(20, len(pareto_facturacion)), 1],
+                'values': ['Pareto por Facturación', row + 1, 2, row + min(20, len(pareto_facturacion)), 2],
                 'y2_axis': False,
             })
           
             # Línea de % acumulado
             chart.add_series({
                 'name': '% Acumulado',
-                'categories': ['5. Pareto por Facturación', row + 1, 1, row + min(20, len(pareto_facturacion)), 1],
-                'values': ['5. Pareto por Facturación', row + 1, 6, row + min(20, len(pareto_facturacion)), 6],
+                'categories': ['Pareto por Facturación', row + 1, 1, row + min(20, len(pareto_facturacion)), 1],
+                'values': ['Pareto por Facturación', row + 1, 6, row + min(20, len(pareto_facturacion)), 6],
                 'y2_axis': True,
                 'line': {'color': 'red', 'width': 2.5},
                 'marker': {'type': 'circle', 'size': 5},
@@ -846,14 +846,14 @@ class GeneradorReporte:
                 formato = self.formatos['normal']
                 if isinstance(cell_value, str):
                     formato = self.formatos['normal']
-                elif 'Factura' in df_clean.columns[col_num] or '$' in df_clean.columns[col_num] or 'Precio' in df_clean.columns[col_num]:
-                    formato = self.formatos['moneda']
                 elif '%' in df_clean.columns[col_num]:
                     formato = self.formatos['porcentaje']
                     if isinstance(cell_value, (int, float)) and not pd.isna(cell_value):
                         cell_value = cell_value / 100
                     else:
                         cell_value = 0
+                elif 'Factura' in df_clean.columns[col_num] or '$' in df_clean.columns[col_num] or 'Precio' in df_clean.columns[col_num]:
+                    formato = self.formatos['moneda']
                 elif isinstance(cell_value, float):
                     formato = self.formatos['numero']
                 else:
@@ -867,11 +867,13 @@ class GeneradorReporte:
     def _crear_hoja_comparativa_peso_cantidad(self, df_completo: pd.DataFrame):
     # """
     # Crea una hoja comparativa de Peso vs Cantidad por producto.
+    # Muestra TODOS los productos y calcula la facturación total correctamente.
     # """
-        sheet = self.workbook.add_worksheet('6. Peso vs Cantidad')
+        sheet = self.workbook.add_worksheet('Peso vs Cantidad')
         sheet.set_column('A:E', 18)
 
         row = 0
+        # Título
         sheet.merge_range(row, 0, row, 4,
                         '⚖️ COMPARATIVA: PESO vs CANTIDAD por Producto',
                         self.formatos['titulo'])
@@ -881,82 +883,78 @@ class GeneradorReporte:
                         self.formatos['subtitulo'])
         row += 2
 
-        # ✅ Usar la columna MONTO_FACTURADO ya calculada
+        # ✅ Asegurar columna MONTO_FACTURADO
+        if 'MONTO_FACTURADO' not in df_completo.columns:
+            if 'PESO TOTAL' in df_completo.columns and 'PRECIO UNITARIO' in df_completo.columns:
+                df_completo['MONTO_FACTURADO'] = df_completo['PESO TOTAL'] * df_completo['PRECIO UNITARIO']
+            else:
+                raise ValueError("Falta la columna 'MONTO_FACTURADO' o 'PRECIO UNITARIO' para calcular la facturación total.")
+
+        # Agrupar por producto
         comparativa = df_completo.groupby(['CODIGO', 'NOMBRE']).agg({
             'CANT': 'sum',
             'PESO TOTAL': 'sum',
             'MONTO_FACTURADO': 'sum'
         }).reset_index()
 
-        comparativa.columns = ['Código', 'Nombre', 'Cantidad Total', 'Peso Total (kg)', 'Facturación Total ($)']
-        comparativa = comparativa.sort_values('Peso Total (kg)', ascending=False).head(20)
+        comparativa.columns = ['Código', 'Nombre', 'Cantidad Total', 'Peso Total (kg)', 'Facturación Total (S/)']
+        comparativa = comparativa.sort_values('Peso Total (kg)', ascending=False)
 
-        # Insight
-        if len(comparativa) > 0:
-            producto_mas_pesado = comparativa.iloc[0]
-            producto_mas_cantidad = comparativa.sort_values('Cantidad Total', ascending=False).iloc[0]
-            sheet.merge_range(row, 0, row, 4,
-                            f'📊 INSIGHT: "{producto_mas_pesado["Nombre"]}" es el más pesado '
-                            f'({producto_mas_pesado["Peso Total (kg)"]:.0f} kg). '
-                            f'"{producto_mas_cantidad["Nombre"]}" tiene más piezas '
-                            f'({producto_mas_cantidad["Cantidad Total"]:.0f} unidades).',
-                            self.formatos['normal'])
-            row += 2
+        # Insight automático
+        # if len(comparativa) > 0:
+        #     producto_mas_pesado = comparativa.iloc[0]
+        #     producto_mas_cantidad = comparativa.sort_values('Cantidad Total', ascending=False).iloc[0]
+        #     sheet.merge_range(row, 0, row, 4,
+        #                     f'📊 PERSPECTIVA: "{producto_mas_pesado["Nombre"]}" es el más pesado '
+        #                     f'({producto_mas_pesado["Peso Total (kg)"]:.0f} kg). '
+        #                     f'"{producto_mas_cantidad["Nombre"]}" tiene más piezas '
+        #                     f'({producto_mas_cantidad["Cantidad Total"]:.0f} unidades).',
+        #                     self.formatos['normal'])
+        #     row += 2
 
-        # Tabla
+        # ✅ Escribir TODOS los productos
         self._escribir_dataframe(sheet, comparativa, row, 0)
 
-        # (mantén los gráficos igual que estaban)
+        # Gráfico combinado: Cantidad (barras) + Peso (línea)
+        # if len(comparativa) > 0:
+        #     # Limitar solo el gráfico (por legibilidad)
+        #     n = min(30, len(comparativa))
 
-        
-            # Tabla
-        self._escribir_dataframe(sheet, comparativa, row, 0)
-        
-        # GRÁFICO COMBINADO: Barras para Cantidad + Línea para Peso
-        if len(comparativa) > 0:
-            chart = self.workbook.add_chart({'type': 'column'})
-        
-            # Serie 1: Cantidad (barras azules)
-            chart.add_series({
-                'name': 'Cantidad Total',
-                'categories': ['6. Peso vs Cantidad', row + 1, 1, row + len(comparativa), 1],  # Nombres
-                'values': ['6. Peso vs Cantidad', row + 1, 2, row + len(comparativa), 2],  # Cantidad
-                'fill': {'color': '#3498DB'},
-                'y2_axis': False,
-            })
-        
-            # Serie 2: Peso (línea roja en eje secundario)
-            chart.add_series({
-                'name': 'Peso Total (kg)',
-                'categories': ['6. Peso vs Cantidad', row + 1, 1, row + len(comparativa), 1],  # Nombres
-                'values': ['6. Peso vs Cantidad', row + 1, 3, row + len(comparativa), 3],  # Peso
-                'line': {'color': '#E74C3C', 'width': 3},
-                'marker': {'type': 'circle', 'size': 7, 'fill': {'color': '#E74C3C'}},
-                'y2_axis': True,
-            })
-        
-            chart.set_title({'name': 'Comparativa: Cantidad vs Peso (Top 20 Productos)'})
-            chart.set_x_axis({'name': 'Producto', 'label_position': 'low'})
-            chart.set_y_axis({'name': 'Cantidad Total (unidades)', 'major_gridlines': {'visible': True}})
-            chart.set_y2_axis({'name': 'Peso Total (kg)', 'major_gridlines': {'visible': False}})
-            chart.set_size({'width': 1100, 'height': 550})
-            chart.set_legend({'position': 'top'})
-        
-            sheet.insert_chart(row + len(comparativa) + 2, 0, chart)
-        
-            # GRÁFICO DE DISPERSIÓN: Peso vs Cantidad
-            chart2 = self.workbook.add_chart({'type': 'scatter'})
-            chart2.add_series({
-                'name': 'Productos',
-                'categories': ['6. Peso vs Cantidad', row + 1, 2, row + len(comparativa), 2],  # Cantidad
-                'values': ['6. Peso vs Cantidad', row + 1, 3, row + len(comparativa), 3],  # Peso
-                'marker': {'type': 'circle', 'size': 10, 'fill': {'color': '#9B59B6'}},
-            })
-        
-            chart2.set_title({'name': 'Relación: Cantidad vs Peso'})
-            chart2.set_x_axis({'name': 'Cantidad Total (unidades)'})
-            chart2.set_y_axis({'name': 'Peso Total (kg)'})
-            chart2.set_size({'width': 900, 'height': 500})
-            chart2.set_legend({'position': 'none'})
-        
-            sheet.insert_chart(row + len(comparativa) + 32, 0, chart2)
+        #     chart = self.workbook.add_chart({'type': 'column'})
+        #     chart.add_series({
+        #         'name': 'Cantidad Total',
+        #         'categories': ['Peso vs Cantidad', row + 1, 1, row + n, 1],
+        #         'values': ['Peso vs Cantidad', row + 1, 2, row + n, 2],
+        #         'fill': {'color': '#3498DB'},
+        #         'y2_axis': False,
+        #     })
+        #     chart.add_series({
+        #         'name': 'Peso Total (kg)',
+        #         'categories': ['Peso vs Cantidad', row + 1, 1, row + n, 1],
+        #         'values': ['Peso vs Cantidad', row + 1, 3, row + n, 3],
+        #         'line': {'color': '#E74C3C', 'width': 3},
+        #         'marker': {'type': 'circle', 'size': 7, 'fill': {'color': '#E74C3C'}},
+        #         'y2_axis': True,
+        #     })
+        #     chart.set_title({'name': 'Comparativa: Cantidad vs Peso (Top 30 visual)'})
+        #     chart.set_x_axis({'name': 'Producto', 'label_position': 'low'})
+        #     chart.set_y_axis({'name': 'Cantidad Total (unidades)'})
+        #     chart.set_y2_axis({'name': 'Peso Total (kg)'})
+        #     chart.set_size({'width': 1100, 'height': 550})
+        #     chart.set_legend({'position': 'top'})
+        #     sheet.insert_chart(row + n + 2, 0, chart)
+
+        #     # Gráfico de dispersión: Cantidad vs Peso
+        #     chart2 = self.workbook.add_chart({'type': 'scatter'})
+        #     chart2.add_series({
+        #         'name': 'Productos',
+        #         'categories': ['Peso vs Cantidad', row + 1, 2, row + n, 2],
+        #         'values': ['Peso vs Cantidad', row + 1, 3, row + n, 3],
+        #         'marker': {'type': 'circle', 'size': 8, 'fill': {'color': '#9B59B6'}},
+        #     })
+        #     chart2.set_title({'name': 'Relación: Cantidad vs Peso (Top 30 visual)'})
+        #     chart2.set_x_axis({'name': 'Cantidad Total (unidades)'})
+        #     chart2.set_y_axis({'name': 'Peso Total (kg)'})
+        #     chart2.set_size({'width': 900, 'height': 500})
+        #     chart2.set_legend({'position': 'none'})
+        #     sheet.insert_chart(row + n + 2, 6, chart2)

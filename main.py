@@ -114,8 +114,8 @@ def main():
         pareto_facturacion = analizador.pareto_por_facturacion()
         print(f"   ✓ Pareto por Facturación: {len(pareto_facturacion)} productos analizados")
         
-        matriz_decision = analizador.matriz_decision()
-        print(f"   ✓ Matriz de Decisión: {len(matriz_decision)} productos con índice global")
+        # matriz_decision = analizador.matriz_decision()
+        # print(f"   ✓ Matriz de Decisión: {len(matriz_decision)} productos con índice global")
         
         segmentacion_bcg = analizador.segmentacion_bcg()
         print(f"   ✓ Segmentación BCG: {len(segmentacion_bcg)} productos clasificados")
@@ -140,7 +140,7 @@ def main():
             pareto_peso=pareto_peso,
             pareto_cantidad=pareto_cantidad,
             pareto_facturacion=pareto_facturacion,
-            matriz_decision=matriz_decision,
+            # matriz_decision=matriz_decision,
             segmentacion_bcg=segmentacion_bcg
         )
         
