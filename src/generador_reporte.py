@@ -136,8 +136,8 @@ class GeneradorReporte:
         # Crear hojas (HOJAS DE PRIORIZACIÓN PRIMERO)
         # self._crear_hoja_matriz_decision(matriz_decision)
         # self._crear_hoja_segmentacion_bcg(segmentacion_bcg)
-        self._crear_hoja_pareto_peso(pareto_peso)
-        self._crear_hoja_pareto_cantidad(pareto_cantidad)
+        # self._crear_hoja_pareto_peso(pareto_peso)
+        # self._crear_hoja_pareto_cantidad(pareto_cantidad)
         self._crear_hoja_pareto_facturacion_priorizacion(pareto_facturacion)
         self._crear_hoja_comparativa_peso_cantidad(df_completo)
         self._crear_hoja_distribucion_peso(df_completo)
@@ -963,8 +963,9 @@ class GeneradorReporte:
 
     def _crear_hoja_distribucion_peso(self, df_completo: pd.DataFrame):
     # """
-    # Crea una hoja que muestra la distribución de productos por rango de peso (en kg).
-    # Incluye tabla, gráfico de barras y gráfico de porcentaje (torta).
+    # Crea una hoja que muestra la distribución de productos por rango de peso neto (en kg).
+    # Usa el peso individual de cada pieza (PESO NETO) y multiplica por la cantidad (CANT)
+    # para calcular la cantidad total de piezas en cada rango.
     # """
         sheet = self.workbook.add_worksheet('Distribución por Peso')
         sheet.set_column('A:C', 20)
@@ -972,42 +973,40 @@ class GeneradorReporte:
         row = 0
         # Título
         sheet.merge_range(row, 0, row, 2,
-                            '⚖️ DISTRIBUCIÓN DE PRODUCTOS POR RANGO DE PESO',
-                            self.formatos['titulo'])
+                        '⚖️ DISTRIBUCIÓN DE PRODUCTOS POR RANGO DE PESO (PESO NETO)',
+                        self.formatos['titulo'])
         row += 1
         sheet.merge_range(row, 0, row, 2,
-                            'Agrupa los productos según su peso total o unitario para identificar patrones de producción.',
-                            self.formatos['subtitulo'])
+                        'Clasifica los productos según su peso individual (PESO NETO) y muestra cuántas piezas hay en cada rango.',
+                        self.formatos['subtitulo'])
         row += 2
 
-        # Determinar la columna de peso a usar
-        if 'PESO TOTAL' in df_completo.columns:
-            columna_peso = 'PESO TOTAL'
-        elif 'PESO UNITARIO' in df_completo.columns:
-            columna_peso = 'PESO UNITARIO'
-        else:
-            raise ValueError("No se encontró columna de peso ('PESO TOTAL' o 'PESO UNITARIO') en el DataFrame.")
+        # ✅ Determinar columna de peso base (debe usar PESO NETO)
+        if 'PESO NETO' not in df_completo.columns:
+            raise ValueError("No se encontró la columna 'PESO NETO' en el DataFrame.")
+        if 'CANT' not in df_completo.columns:
+            raise ValueError("No se encontró la columna 'CANT' en el DataFrame.")
 
         # Crear rangos automáticos cada 10 kg (ajustable)
-        max_peso = df_completo[columna_peso].max()
+        max_peso = df_completo['PESO NETO'].max()
         bins = list(range(0, int(max_peso) + 10, 10))
         labels = [f"{i}-{i+10} kg" for i in bins[:-1]]
 
         # Crear los rangos con pd.cut()
         df_completo['Rango de Peso (kg)'] = pd.cut(
-            df_completo[columna_peso],
+            df_completo['PESO NETO'],
             bins=bins,
             labels=labels,
             right=False
-        ).astype(object)  # Evita error de categorías
+        ).astype(object)
 
         # Agregar manualmente un rango final para los pesos mayores al último bin
-        df_completo.loc[df_completo[columna_peso] >= bins[-1], 'Rango de Peso (kg)'] = f">{bins[-1]} kg"
+        df_completo.loc[df_completo['PESO NETO'] >= bins[-1], 'Rango de Peso (kg)'] = f">{bins[-1]} kg"
 
-        # Agrupar por rango
+        # ✅ Agrupar por rango, sumando la cantidad de piezas (CANT)
         distribucion = (
-            df_completo.groupby('Rango de Peso (kg)')
-            .size()
+            df_completo.groupby('Rango de Peso (kg)')['CANT']
+            .sum()
             .reset_index(name='Cantidad de Productos')
         )
 
@@ -1015,7 +1014,7 @@ class GeneradorReporte:
         total_productos = distribucion['Cantidad de Productos'].sum()
         distribucion['% de Productos'] = (distribucion['Cantidad de Productos'] / total_productos * 100).round(2)
 
-        # ✅ Ordenar por el número inicial del rango
+        # Ordenar por el número inicial del rango
         distribucion = distribucion.assign(
             orden=distribucion['Rango de Peso (kg)'].astype(str).str.extract(r'(\d+)').astype(float)
         ).sort_values('orden').drop(columns='orden').reset_index(drop=True)
@@ -1032,21 +1031,22 @@ class GeneradorReporte:
                 'values': ['Distribución por Peso', row + 1, 1, row + len(distribucion), 1],
                 'data_labels': {'value': True},
             })
-            chart_bar.set_title({'name': 'Cantidad de Productos por Rango de Peso'})
+            chart_bar.set_title({'name': 'Cantidad de Productos por Rango de Peso Neto'})
             chart_bar.set_x_axis({'name': 'Rango de Peso (kg)'})
             chart_bar.set_y_axis({'name': 'Cantidad de Productos'})
             chart_bar.set_size({'width': 720, 'height': 400})
             sheet.insert_chart(row + len(distribucion) + 3, 0, chart_bar)
 
             # Gráfico de torta
-            # chart_pie = self.workbook.add_chart({'type': 'pie'})
-            # chart_pie.add_series({
-            #     'name': '% de Productos por Rango de Peso',
-            #     'categories': ['Distribución por Peso', row + 1, 0, row + len(distribucion), 0],
-            #     'values': ['Distribución por Peso', row + 1, 2, row + len(distribucion), 2],
-            #     'data_labels': {'percentage': True, 'category': True},
-            # })
-            # chart_pie.set_title({'name': '% de Productos por Rango de Peso'})
-            # chart_pie.set_size({'width': 500, 'height': 400})
-            # sheet.insert_chart(row + len(distribucion) + 3, 5, chart_pie)
+            chart_pie = self.workbook.add_chart({'type': 'pie'})
+            chart_pie.add_series({
+                'name': '% de Productos por Rango de Peso',
+                'categories': ['Distribución por Peso', row + 1, 0, row + len(distribucion), 0],
+                'values': ['Distribución por Peso', row + 1, 2, row + len(distribucion), 2],
+                'data_labels': {'percentage': True, 'category': True},
+            })
+            chart_pie.set_title({'name': '% de Productos por Rango de Peso'})
+            chart_pie.set_size({'width': 500, 'height': 400})
+            sheet.insert_chart(row + len(distribucion) + 3, 5, chart_pie)
+
 
