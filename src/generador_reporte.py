@@ -141,6 +141,7 @@ class GeneradorReporte:
         self._crear_hoja_pareto_facturacion_priorizacion(pareto_facturacion)
         self._crear_hoja_comparativa_peso_cantidad(df_completo)
         self._crear_hoja_distribucion_peso(df_completo)
+        self._crear_hoja_rangos_peso_categorias(df_completo)
         self._crear_hoja_datos_completos(df_completo)
       
         self.workbook.close()
@@ -866,10 +867,10 @@ class GeneradorReporte:
                     sheet.write(row_num, start_col + col_num, str(cell_value), self.formatos['normal'])
   
     def _crear_hoja_comparativa_peso_cantidad(self, df_completo: pd.DataFrame):
-    # """
-    # Crea una hoja comparativa de Peso vs Cantidad por producto.
-    # Muestra TODOS los productos y calcula la facturación total correctamente.
-    # """
+        """
+        Crea una hoja comparativa de Peso vs Cantidad por producto.
+        Muestra TODOS los productos y calcula la facturación total correctamente.
+        """
         sheet = self.workbook.add_worksheet('Peso vs Cantidad')
         sheet.set_column('A:E', 18)
 
@@ -884,38 +885,34 @@ class GeneradorReporte:
                         self.formatos['subtitulo'])
         row += 2
 
-        # ✅ Asegurar columna MONTO_FACTURADO
+        # Asegurar columna MONTO_FACTURADO
         if 'MONTO_FACTURADO' not in df_completo.columns:
             if 'PESO TOTAL' in df_completo.columns and 'PRECIO UNITARIO' in df_completo.columns:
                 df_completo['MONTO_FACTURADO'] = df_completo['PESO TOTAL'] * df_completo['PRECIO UNITARIO']
             else:
                 raise ValueError("Falta la columna 'MONTO_FACTURADO' o 'PRECIO UNITARIO' para calcular la facturación total.")
 
-        # Agrupar por producto
-        comparativa = df_completo.groupby(['CODIGO', 'NOMBRE']).agg({
+        # Obtener nombre representativo por código
+        nombres_representativos = df_completo.groupby('CODIGO')['NOMBRE'].agg(
+            lambda x: x.mode()[0] if not x.mode().empty else x.iloc[0]
+        ).reset_index()
+        
+        # Agrupar solo por CODIGO
+        comparativa = df_completo.groupby('CODIGO').agg({
             'CANT': 'sum',
             'PESO TOTAL': 'sum',
             'MONTO_FACTURADO': 'sum'
         }).reset_index()
+        
+        # Unir con nombres representativos
+        comparativa = comparativa.merge(nombres_representativos, on='CODIGO', how='left')
 
+        comparativa = comparativa[['CODIGO', 'NOMBRE', 'CANT', 'PESO TOTAL', 'MONTO_FACTURADO']]
         comparativa.columns = ['Código', 'Nombre', 'Cantidad Total', 'Peso Total (kg)', 'Facturación Total (S/)']
         comparativa = comparativa.sort_values('Peso Total (kg)', ascending=False)
 
-        # Insight automático
-        # if len(comparativa) > 0:
-        #     producto_mas_pesado = comparativa.iloc[0]
-        #     producto_mas_cantidad = comparativa.sort_values('Cantidad Total', ascending=False).iloc[0]
-        #     sheet.merge_range(row, 0, row, 4,
-        #                     f'📊 PERSPECTIVA: "{producto_mas_pesado["Nombre"]}" es el más pesado '
-        #                     f'({producto_mas_pesado["Peso Total (kg)"]:.0f} kg). '
-        #                     f'"{producto_mas_cantidad["Nombre"]}" tiene más piezas '
-        #                     f'({producto_mas_cantidad["Cantidad Total"]:.0f} unidades).',
-        #                     self.formatos['normal'])
-        #     row += 2
-
-        # ✅ Escribir TODOS los productos
+        # Escribir TODOS los productos
         self._escribir_dataframe(sheet, comparativa, row, 0)
-
         # Gráfico combinado: Cantidad (barras) + Peso (línea)
         # if len(comparativa) > 0:
         #     # Limitar solo el gráfico (por legibilidad)
@@ -1048,5 +1045,129 @@ class GeneradorReporte:
             chart_pie.set_title({'name': '% de Productos por Rango de Peso'})
             chart_pie.set_size({'width': 500, 'height': 400})
             sheet.insert_chart(row + len(distribucion) + 3, 5, chart_pie)
+            
+    
+    def _crear_hoja_rangos_peso_categorias(self, df_completo: pd.DataFrame, bin_size: int = 10):
+        """
+        Crea una hoja que muestra, por rango de peso neto (PESO NETO), la cantidad total (suma de CANT),
+        el % sobre la cantidad total, el número de productos únicos en ese rango, el % sobre los productos
+        totales y las categorías presentes en cada rango.
+        Args:
+            df_completo: DataFrame con las columnas mínimas: 'PESO NETO', 'CANT', 'CODIGO', 'CATEGORIA'
+            bin_size: tamaño del bin en kg (por defecto 10 -> 0-10, 10-20, ...)
+        """
+        sheet = self.workbook.add_worksheet('Rangos de Peso y Categorías')
+        sheet.set_column('A:A', 20)
+        sheet.set_column('B:B', 16)
+        sheet.set_column('C:C', 14)
+        sheet.set_column('D:D', 16)
+        sheet.set_column('E:E', 14)
+        sheet.set_column('F:F', 60)  # para listar categorías
+
+        # Validaciones básicas
+        if 'PESO NETO' not in df_completo.columns:
+            raise ValueError("La columna 'PESO NETO' no existe en el DataFrame.")
+        if 'CANT' not in df_completo.columns:
+            raise ValueError("La columna 'CANT' no existe en el DataFrame.")
+        if 'CODIGO' not in df_completo.columns:
+            raise ValueError("La columna 'CODIGO' no existe en el DataFrame.")
+        if 'CATEGORIA' not in df_completo.columns:
+            # permitimos que no exista, pero la columna de categorías quedará vacía
+            df_completo = df_completo.copy()
+            df_completo['CATEGORIA'] = ''
+
+        df = df_completo.copy()
+
+        # Preparar bins
+        max_peso = float(df['PESO NETO'].max(skipna=True) if not df['PESO NETO'].isna().all() else 0)
+        if max_peso <= 0:
+            bins = [0, bin_size]
+        else:
+            import math
+            top = int(math.ceil(max_peso / bin_size) * bin_size)
+            bins = list(range(0, top + bin_size, bin_size))
+
+        labels = [f"{i}-{i+bin_size} kg" for i in bins[:-1]]
+        df['Rango de Peso (kg)'] = pd.cut(df['PESO NETO'], bins=bins, labels=labels, right=False, include_lowest=True).astype(object)
+        # registros mayores o iguales al último límite se marcan con >top kg
+        df.loc[df['PESO NETO'] >= bins[-1], 'Rango de Peso (kg)'] = f">{bins[-1]} kg"
+
+        # Agrupar y calcular métricas
+        agrupado = df.groupby('Rango de Peso (kg)', sort=False).agg({
+            'CANT': 'sum',
+            'CODIGO': pd.Series.nunique,
+            'CATEGORIA': lambda x: sorted({str(c).strip() for c in x.dropna() if str(c).strip() != ''})
+        }).reset_index().rename(columns={
+            'CANT': 'Cantidad (piezas)',
+            'CODIGO': 'Productos únicos',
+            'CATEGORIA': 'Categorías'
+        })
+
+        total_cantidad = agrupado['Cantidad (piezas)'].sum()
+        total_productos = df['CODIGO'].nunique()
+
+        # Evitar división por cero
+        if total_cantidad == 0:
+            agrupado['% de Cantidad'] = 0.0
+        else:
+            agrupado['% de Cantidad'] = (agrupado['Cantidad (piezas)'] / total_cantidad * 100).round(2)
+
+        if total_productos == 0:
+            agrupado['% de Productos'] = 0.0
+        else:
+            agrupado['% de Productos'] = (agrupado['Productos únicos'] / total_productos * 100).round(2)
+
+        # Convertir lista de categorias a texto (una por línea)
+        agrupado['Categorías dentro del rango'] = agrupado['Categorías'].apply(lambda lst: "\n".join(lst) if isinstance(lst, (list, tuple)) and len(lst)>0 else "-")
+        agrupado = agrupado[[
+            'Rango de Peso (kg)',
+            'Cantidad (piezas)',
+            '% de Cantidad',
+            'Productos únicos',
+            '% de Productos',
+            'Categorías dentro del rango'
+        ]]
+
+        # Escribir título y descripción
+        row = 0
+        sheet.merge_range(row, 0, row, 5, 'DISTRIBUCIÓN POR RANGO DE PESO - Cantidad y Categorías', self.formatos['titulo'])
+        row += 1
+        sheet.merge_range(row, 0, row, 5, f'Rangos = {bin_size} kg  |  Total piezas = {int(total_cantidad)}  |  Productos únicos = {int(total_productos)}', self.formatos['subtitulo'])
+        row += 2
+
+        # Encabezados
+        for col_num, col_name in enumerate(agrupado.columns):
+            sheet.write(row, col_num, col_name, self.formatos['encabezado'])
+        row += 1
+
+        # Escribir filas con formatos adecuados (usar texto wrap para categorías)
+        for _, r in agrupado.iterrows():
+            sheet.write(row, 0, str(r['Rango de Peso (kg)']), self.formatos['normal'])
+            sheet.write(row, 1, int(r['Cantidad (piezas)']), self.formatos['entero'])
+            # % de Cantidad y % de Productos: aprovechar formato porcentaje (valor será dividido por 100 por consistencia con otras funciones)
+            # Aquí escribimos la cantidad en formato numérico y el % como número (p. ej. 12.34) para que se muestre como 12.34% con el formato.
+            sheet.write(row, 2, float(r['% de Cantidad']) / 100 if not pd.isna(r['% de Cantidad']) else 0, self.formatos['porcentaje'])
+            sheet.write(row, 3, int(r['Productos únicos']), self.formatos['entero'])
+            sheet.write(row, 4, float(r['% de Productos']) / 100 if not pd.isna(r['% de Productos']) else 0, self.formatos['porcentaje'])
+            # Categorías: texto con ajuste
+            sheet.write(row, 5, r['Categorías dentro del rango'], self.formatos['texto_wrap'])
+            row += 1
+
+        # Añadir gráfico opcional: barras de cantidad por rango (si hay datos)
+        if len(agrupado) > 0:
+            chart = self.workbook.add_chart({'type': 'column'})
+            first_row = 4  # fila donde empiezan los datos (ajusta si cambias arriba)
+            last_row = first_row + len(agrupado) - 1
+            chart.add_series({
+                'name': 'Cantidad (piezas)',
+                'categories': [sheet.name, first_row, 0, last_row, 0],
+                'values': [sheet.name, first_row, 1, last_row, 1],
+                'data_labels': {'value': True},
+            })
+            chart.set_title({'name': 'Cantidad por Rango de Peso (piezas)'})
+            chart.set_x_axis({'name': 'Rango de Peso (kg)'})
+            chart.set_y_axis({'name': 'Cantidad (piezas)'})
+            chart.set_size({'width': 720, 'height': 380})
+            sheet.insert_chart(row + 1, 0, chart)
 
 

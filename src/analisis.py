@@ -93,27 +93,44 @@ class AnalizadorVentas:
         """
         Obtiene los productos más vendidos por cantidad.
         """
-        top = self.df.groupby(['CODIGO', 'NOMBRE']).agg({
+        # Obtener nombre representativo por código
+        nombres_representativos = self.df.groupby('CODIGO')['NOMBRE'].agg(
+            lambda x: x.mode()[0] if not x.mode().empty else x.iloc[0]
+        ).reset_index()
+        
+        # Agrupar solo por CODIGO
+        top = self.df.groupby('CODIGO').agg({
             'CANT': 'sum',
             'MONTO_FACTURADO': 'sum',
             'PESO TOTAL': 'sum'
         }).reset_index()
+        
+        # Unir con nombres representativos
+        top = top.merge(nombres_representativos, on='CODIGO', how='left')
         
         top = top.sort_values('CANT', ascending=False).head(top_n)
         
         top = top[['CODIGO', 'NOMBRE', 'CANT', 'MONTO_FACTURADO', 'PESO TOTAL']]
         top.columns = ['Código', 'Nombre', 'Cantidad Total', 'Facturación Total', 'Peso Total']
         return top
-    
     def top_productos_facturacion(self, top_n: int = 10) -> pd.DataFrame:
         """
         Obtiene los productos con mayor facturación.
         """
-        top = self.df.groupby(['CODIGO', 'NOMBRE']).agg({
+        # Obtener nombre representativo por código
+        nombres_representativos = self.df.groupby('CODIGO')['NOMBRE'].agg(
+            lambda x: x.mode()[0] if not x.mode().empty else x.iloc[0]
+        ).reset_index()
+        
+        # Agrupar solo por CODIGO
+        top = self.df.groupby('CODIGO').agg({
             'MONTO_FACTURADO': 'sum',
             'CANT': 'sum',
             'PESO TOTAL': 'sum'
         }).reset_index()
+        
+        # Unir con nombres representativos
+        top = top.merge(nombres_representativos, on='CODIGO', how='left')
         
         top = top.sort_values('MONTO_FACTURADO', ascending=False).head(top_n)
         
@@ -170,11 +187,20 @@ class AnalizadorVentas:
         """
         Obtiene los productos con mayor precio por kilogramo.
         """
-        productos = self.df.groupby(['CODIGO', 'NOMBRE']).agg({
+        # Obtener nombre representativo por código
+        nombres_representativos = self.df.groupby('CODIGO')['NOMBRE'].agg(
+            lambda x: x.mode()[0] if not x.mode().empty else x.iloc[0]
+        ).reset_index()
+        
+        # Agrupar solo por CODIGO
+        productos = self.df.groupby('CODIGO').agg({
             'MONTO_FACTURADO': 'sum',
             'PESO TOTAL': 'sum',
             'CANT': 'sum'
         }).reset_index()
+        
+        # Unir con nombres representativos
+        productos = productos.merge(nombres_representativos, on='CODIGO', how='left')
         
         # Evitar división por cero
         productos = productos[productos['PESO TOTAL'] > 0]
@@ -190,9 +216,21 @@ class AnalizadorVentas:
         """
         Aplica la Ley de Pareto (80/20) a los productos.
         """
-        productos = self.df.groupby(['CODIGO', 'NOMBRE']).agg({
+        # Primero obtener un nombre representativo por código (el más frecuente)
+        nombres_representativos = self.df.groupby('CODIGO')['NOMBRE'].agg(
+            lambda x: x.mode()[0] if not x.mode().empty else x.iloc[0]
+        ).reset_index()
+        
+        # Luego agrupar solo por CODIGO
+        productos = self.df.groupby('CODIGO').agg({
             'MONTO_FACTURADO': 'sum'
         }).reset_index()
+        
+        # Unir con los nombres representativos
+        productos = productos.merge(nombres_representativos, on='CODIGO', how='left')
+        
+        # Reordenar columnas
+        productos = productos[['CODIGO', 'NOMBRE', 'MONTO_FACTURADO']]
         
         productos = productos.sort_values('MONTO_FACTURADO', ascending=False)
         
@@ -300,11 +338,20 @@ class AnalizadorVentas:
         """
         Análisis Pareto por Peso (capacidad de fundición).
         """
-        productos = self.df.groupby(['CODIGO', 'NOMBRE']).agg({
+        # Obtener nombre representativo por código
+        nombres_representativos = self.df.groupby('CODIGO')['NOMBRE'].agg(
+            lambda x: x.mode()[0] if not x.mode().empty else x.iloc[0]
+        ).reset_index()
+        
+        # Agrupar solo por CODIGO
+        productos = self.df.groupby('CODIGO').agg({
             'PESO TOTAL': 'sum',
             'MONTO_FACTURADO': 'sum',
             'CANT': 'sum'
         }).reset_index()
+        
+        # Unir con nombres representativos
+        productos = productos.merge(nombres_representativos, on='CODIGO', how='left')
         
         productos = productos.sort_values('PESO TOTAL', ascending=False)
         
@@ -321,11 +368,20 @@ class AnalizadorVentas:
         """
         Análisis Pareto por Cantidad (mano de obra).
         """
-        productos = self.df.groupby(['CODIGO', 'NOMBRE']).agg({
+        # Obtener nombre representativo por código
+        nombres_representativos = self.df.groupby('CODIGO')['NOMBRE'].agg(
+            lambda x: x.mode()[0] if not x.mode().empty else x.iloc[0]
+        ).reset_index()
+        
+        # Agrupar solo por CODIGO
+        productos = self.df.groupby('CODIGO').agg({
             'CANT': 'sum',
             'MONTO_FACTURADO': 'sum',
             'PESO TOTAL': 'sum'
         }).reset_index()
+        
+        # Unir con nombres representativos
+        productos = productos.merge(nombres_representativos, on='CODIGO', how='left')
         
         productos = productos.sort_values('CANT', ascending=False)
         
@@ -342,11 +398,20 @@ class AnalizadorVentas:
         """
         Análisis Pareto por Facturación (ingresos).
         """
-        productos = self.df.groupby(['CODIGO', 'NOMBRE']).agg({
+        # Obtener nombre representativo por código
+        nombres_representativos = self.df.groupby('CODIGO')['NOMBRE'].agg(
+            lambda x: x.mode()[0] if not x.mode().empty else x.iloc[0]
+        ).reset_index()
+        
+        # Agrupar solo por CODIGO
+        productos = self.df.groupby('CODIGO').agg({
             'MONTO_FACTURADO': 'sum',
             'PESO TOTAL': 'sum',
             'CANT': 'sum'
         }).reset_index()
+        
+        # Unir con nombres representativos
+        productos = productos.merge(nombres_representativos, on='CODIGO', how='left')
         
         productos = productos.sort_values('MONTO_FACTURADO', ascending=False)
         
@@ -433,11 +498,20 @@ class AnalizadorVentas:
         """
         Segmentación BCG: Estrellas, Vacas Lecheras, Desafiantes, Perros.
         """
-        productos = self.df.groupby(['CODIGO', 'NOMBRE']).agg({
+        # Obtener nombre representativo por código
+        nombres_representativos = self.df.groupby('CODIGO')['NOMBRE'].agg(
+            lambda x: x.mode()[0] if not x.mode().empty else x.iloc[0]
+        ).reset_index()
+        
+        # Agrupar solo por CODIGO
+        productos = self.df.groupby('CODIGO').agg({
             'PESO TOTAL': 'sum',
             'MONTO_FACTURADO': 'sum',
             'CANT': 'sum'
         }).reset_index()
+        
+        # Unir con nombres representativos
+        productos = productos.merge(nombres_representativos, on='CODIGO', how='left')
         
         # Calcular medianas para clasificación
         mediana_peso = productos['PESO TOTAL'].median()
