@@ -420,7 +420,7 @@ class AnalizadorVentas:
         productos['% Acumulado'] = (productos['Facturación Acumulada'] / total_facturacion * 100).fillna(0).round(2)
         productos['% Individual'] = (productos['MONTO_FACTURADO'] / total_facturacion * 100).fillna(0).round(2)
         
-        productos.columns = ['Código', 'Nombre', 'Facturación Total', 'Peso Total (kg)', 'Cantidad', 'Facturación Acumulada', '% Acumulado', '% Individual']
+        productos.columns = ['Código', 'Facturación Total', 'Peso Total (Kg)', 'Cantidad', 'Nombre', 'Facturación Acumulada', '% Acumulado', '% Individual']
         
         return productos
     
